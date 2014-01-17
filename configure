@@ -19899,6 +19899,18 @@ then :
   printf "%s\n" "#define HAVE_SCHED_YIELD 1" >>confdefs.h
 
 fi
+ac_fn_c_check_func "$LINENO" "renameat" "ac_cv_func_renameat"
+if test "x$ac_cv_func_renameat" = xyes
+then :
+  printf "%s\n" "#define HAVE_RENAMEAT 1" >>confdefs.h
+
+fi
+ac_fn_c_check_func "$LINENO" "renameat2" "ac_cv_func_renameat2"
+if test "x$ac_cv_func_renameat2" = xyes
+then :
+  printf "%s\n" "#define HAVE_RENAMEAT2 1" >>confdefs.h
+
+fi
 ac_fn_c_check_func "$LINENO" "setproctitle" "ac_cv_func_setproctitle"
 if test "x$ac_cv_func_setproctitle" = xyes
 then :
