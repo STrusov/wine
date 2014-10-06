@@ -9391,12 +9391,15 @@ fi
 
 if test "x$with_xattr" != "xno"
 then
-           for ac_header in attr/xattr.h
+           for ac_header in attr/xattr.h sys/extattr.h
 do :
-  ac_fn_c_check_header_compile "$LINENO" "attr/xattr.h" "ac_cv_header_attr_xattr_h" "$ac_includes_default"
-if test "x$ac_cv_header_attr_xattr_h" = xyes
+  as_ac_Header=`printf "%s\n" "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_compile "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"
 then :
-  printf "%s\n" "#define HAVE_ATTR_XATTR_H 1" >>confdefs.h
+  cat >>confdefs.h <<_ACEOF
+#define `printf "%s\n" "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
  HAVE_XATTR=1
 fi
 
