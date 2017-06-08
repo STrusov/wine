@@ -1332,6 +1332,7 @@ enable_dwrite
 enable_dx8vb
 enable_dxdiagn
 enable_dxgi
+enable_dxgkrnl_sys
 enable_dxtrans
 enable_dxva2
 enable_esent
@@ -22046,6 +22047,7 @@ wine_fn_config_makefile dlls/dxdiagn enable_dxdiagn
 wine_fn_config_makefile dlls/dxdiagn/tests enable_tests
 wine_fn_config_makefile dlls/dxgi enable_dxgi
 wine_fn_config_makefile dlls/dxgi/tests enable_tests
+wine_fn_config_makefile dlls/dxgkrnl.sys enable_dxgkrnl_sys
 wine_fn_config_makefile dlls/dxtrans enable_dxtrans
 wine_fn_config_makefile dlls/dxva2 enable_dxva2
 wine_fn_config_makefile dlls/dxva2/tests enable_tests
