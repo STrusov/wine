@@ -1611,6 +1611,8 @@ struct get_handle_unix_name_request
 {
     struct request_header __header;
     obj_handle_t   handle;
+    int            nofollow;
+    char __pad_20[4];
 };
 struct get_handle_unix_name_reply
 {
@@ -6246,7 +6248,7 @@ union generic_reply
 
 /* ### protocol_version begin ### */
 
-#define SERVER_PROTOCOL_VERSION 739
+#define SERVER_PROTOCOL_VERSION 740
 
 /* ### protocol_version end ### */
 
