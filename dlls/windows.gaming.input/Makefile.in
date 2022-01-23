@@ -1,5 +1,5 @@
 MODULE = windows.gaming.input.dll
-IMPORTS = combase uuid
+IMPORTS = combase uuid xinput
 
 C_SRCS = \
 	main.c

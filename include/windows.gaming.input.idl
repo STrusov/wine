@@ -248,7 +248,7 @@ namespace Windows {
                 requires Windows.Gaming.Input.IGameController
             {
                 [propget] HRESULT Vibration([out, retval] Windows.Gaming.Input.GamepadVibration* value);
-                [propput] HRESULT Vibration([in] Windows.Gaming.Input.GamepadVibration value);
+                [propput] HRESULT Vibration([in] Windows.Gaming.Input.GamepadVibration* value);
                 HRESULT GetCurrentReading([out, retval] Windows.Gaming.Input.GamepadReading* value);
             }
 

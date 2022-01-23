@@ -35,6 +35,8 @@
 #define WIDL_using_Windows_Gaming_Input
 #include "windows.gaming.input.h"
 
+#include "xinput.h"
+
 WINE_DEFAULT_DEBUG_CHANNEL(input);
 
 static const char *debugstr_hstring(HSTRING hstr)
@@ -45,6 +47,192 @@ static const char *debugstr_hstring(HSTRING hstr)
     str = WindowsGetStringRawBuffer(hstr, &len);
     return wine_dbgstr_wn(str, len);
 }
+
+struct gamepad
+{
+    IGamepad IGamepad_iface;
+    LONG ref;
+};
+
+static inline struct gamepad *impl_from_IGamepad(IGamepad *iface)
+{
+    return CONTAINING_RECORD(iface, struct gamepad, IGamepad_iface);
+}
+
+static inline DWORD index_from_IGamepad(IGamepad *iface)
+{
+    /* TODO XUSER_MAX_COUNT*/
+    return 0;
+}
+
+static HRESULT STDMETHODCALLTYPE gamepad_QueryInterface(
+        IGamepad *iface, REFIID iid, void **out)
+{
+    TRACE("iface %p, iid %s, out %p stub!\n", iface, debugstr_guid(iid), out);
+
+    if (IsEqualGUID(iid, &IID_IUnknown) ||
+        IsEqualGUID(iid, &IID_IInspectable) ||
+//        IsEqualGUID(iid, &IID_IAgileObject) ||
+        IsEqualGUID(iid, &IID_IGamepad))
+    {
+        IUnknown_AddRef(iface);
+        *out = iface;
+        return S_OK;
+    }
+
+    if (IsEqualGUID(iid, &IID_IGameController))
+    {
+    }
+
+    WARN("%s not implemented, returning E_NOINTERFACE.\n", debugstr_guid(iid));
+    *out = NULL;
+    return E_NOINTERFACE;
+}
+
+static ULONG STDMETHODCALLTYPE gamepad_AddRef(
+        IGamepad *iface)
+{
+    struct gamepad *impl = impl_from_IGamepad(iface);
+    ULONG ref = InterlockedIncrement(&impl->ref);
+    TRACE("iface %p, ref %u.\n", iface, ref);
+    return ref;
+}
+
+static ULONG STDMETHODCALLTYPE gamepad_Release(
+        IGamepad *iface)
+{
+    struct gamepad *impl = impl_from_IGamepad(iface);
+    ULONG ref = InterlockedDecrement(&impl->ref);
+    TRACE("iface %p, ref %u.\n", iface, ref);
+    return ref;
+}
+
+static HRESULT STDMETHODCALLTYPE gamepad_GetIids(
+        IGamepad *iface, ULONG *iid_count, IID **iids)
+{
+    FIXME("iface %p, iid_count %p, iids %p stub!\n", iface, iid_count, iids);
+    return E_NOTIMPL;
+}
+
+static HRESULT STDMETHODCALLTYPE gamepad_GetRuntimeClassName(
+        IGamepad *iface, HSTRING *class_name)
+{
+    FIXME("iface %p, class_name %p stub!\n", iface, class_name);
+    return E_NOTIMPL;
+}
+
+static HRESULT STDMETHODCALLTYPE gamepad_GetTrustLevel(
+        IGamepad *iface, TrustLevel *trust_level)
+{
+    FIXME("iface %p, trust_level %p stub!\n", iface, trust_level);
+    return E_NOTIMPL;
+}
+
+static inline HRESULT err2hr(DWORD code)
+{
+    HRESULT hres = E_NOTIMPL;
+    switch (code)
+    {
+    case ERROR_SUCCESS:
+        hres = S_OK;
+        break;
+    case ERROR_BAD_ARGUMENTS:
+        hres = E_INVALIDARG;
+        break;
+    case ERROR_DEVICE_NOT_CONNECTED:
+        /* TODO Invoke GamepadRemoved handler? */
+        hres = E_UNEXPECTED;
+        break;
+    default:
+        break;
+    }
+    return hres;
+}
+
+static HRESULT STDMETHODCALLTYPE gamepad_get_Vibration(
+        IGamepad *iface, struct GamepadVibration *value)
+{
+    FIXME("iface %p, value %p stub!\n", iface, value);
+    return E_NOTIMPL;
+}
+
+static HRESULT STDMETHODCALLTYPE gamepad_put_Vibration(
+        IGamepad *iface, struct GamepadVibration *value)
+{
+    XINPUT_VIBRATION xv = { 0 };
+    HRESULT hres;
+
+    if (!value) return E_BOUNDS;
+
+    xv.wLeftMotorSpeed = 65535.0 * value->LeftMotor;
+    xv.wRightMotorSpeed = 65535.0 * value->RightMotor;
+    hres = err2hr(XInputSetState(index_from_IGamepad(iface), &xv));
+
+    TRACE("iface %p, hres %#x, XINPUT_VIBRATION {%u, %u} semi-stub.\n", iface, hres,
+            xv.wLeftMotorSpeed, xv.wRightMotorSpeed);
+    return hres;
+}
+
+static HRESULT STDMETHODCALLTYPE gamepad_GetCurrentReading(
+        IGamepad *iface, struct GamepadReading *value)
+{
+    XINPUT_STATE xs = { 0 };
+    HRESULT hres;
+
+    if (!value) return E_BOUNDS;
+
+    hres = err2hr(XInputGetStateEx(index_from_IGamepad(iface), &xs));
+    if (hres == S_OK)
+    {
+        WORD b = xs.Gamepad.wButtons;
+        if (0) value->Timestamp = 0;
+        value->Buttons = (b & XINPUT_GAMEPAD_START ? GamepadButtons_Menu : 0)
+                       | (b & XINPUT_GAMEPAD_BACK  ? GamepadButtons_View : 0)
+                       | (b & XINPUT_GAMEPAD_A     ? GamepadButtons_A : 0)
+                       | (b & XINPUT_GAMEPAD_B     ? GamepadButtons_B : 0)
+                       | (b & XINPUT_GAMEPAD_X     ? GamepadButtons_X : 0)
+                       | (b & XINPUT_GAMEPAD_Y     ? GamepadButtons_Y : 0)
+                       | (b & XINPUT_GAMEPAD_DPAD_UP    ? GamepadButtons_DPadUp : 0)
+                       | (b & XINPUT_GAMEPAD_DPAD_DOWN  ? GamepadButtons_DPadDown : 0)
+                       | (b & XINPUT_GAMEPAD_DPAD_LEFT  ? GamepadButtons_DPadLeft : 0)
+                       | (b & XINPUT_GAMEPAD_DPAD_RIGHT ? GamepadButtons_DPadRight : 0)
+                       | (b & XINPUT_GAMEPAD_LEFT_SHOULDER  ? GamepadButtons_LeftShoulder : 0)
+                       | (b & XINPUT_GAMEPAD_RIGHT_SHOULDER ? GamepadButtons_RightShoulder : 0)
+                       | (b & XINPUT_GAMEPAD_LEFT_THUMB  ? GamepadButtons_LeftThumbstick : 0)
+                       | (b & XINPUT_GAMEPAD_RIGHT_THUMB ? GamepadButtons_RightThumbstick : 0)
+                       ;
+        value->LeftThumbstickX = xs.Gamepad.sThumbLX / 32767.0;
+        value->LeftThumbstickY = xs.Gamepad.sThumbLY / 32767.0;
+        value->LeftTrigger = xs.Gamepad.bLeftTrigger / 255.0;
+        value->RightThumbstickX = xs.Gamepad.sThumbRX / 32767.0;
+        value->RightThumbstickY = xs.Gamepad.sThumbRY / 32767.0;
+        value->RightTrigger = xs.Gamepad.bRightTrigger / 255.0;
+    }
+
+    TRACE("iface %p, hres %#x, GamepadReading {%#x} semi-stub.\n", iface, hres, value->Buttons);
+    return hres;
+}
+
+static const struct IGamepadVtbl gamepad_vtbl =
+{
+    gamepad_QueryInterface,
+    gamepad_AddRef,
+    gamepad_Release,
+    /* IInspectable methods */
+    gamepad_GetIids,
+    gamepad_GetRuntimeClassName,
+    gamepad_GetTrustLevel,
+    /* IGamepad methods */
+    gamepad_get_Vibration,
+    gamepad_put_Vibration,
+    gamepad_GetCurrentReading,
+};
+
+static struct gamepad gamepad =
+{
+    {&gamepad_vtbl},
+    0
+};
 
 struct gamepad_vector
 {
@@ -119,7 +307,15 @@ static HRESULT STDMETHODCALLTYPE vector_view_gamepad_GetTrustLevel(
 static HRESULT STDMETHODCALLTYPE vector_view_gamepad_GetAt(
         IVectorView_Gamepad *iface, UINT32 index, IGamepad **value)
 {
-    FIXME("iface %p, index %#x, value %p stub!\n", iface, index, value);
+    FIXME("iface %p, index %#x, value %p semi-stub!\n", iface, index, value);
+
+    if (index < 1) /* TODO XUSER_MAX_COUNT*/
+    {
+        *value = &gamepad.IGamepad_iface;
+        IGamepad_AddRef(*value);
+        return S_OK;
+    }
+
     *value = NULL;
     return E_BOUNDS;
 }
@@ -127,8 +323,8 @@ static HRESULT STDMETHODCALLTYPE vector_view_gamepad_GetAt(
 static HRESULT STDMETHODCALLTYPE vector_view_gamepad_get_Size(
         IVectorView_Gamepad *iface, UINT32 *value)
 {
-    FIXME("iface %p, value %p stub!\n", iface, value);
-    *value = 0;
+    FIXME("iface %p, value %p semi-stub!\n", iface, value);
+    *value = 1; /* TODO XUSER_MAX_COUNT*/
     return S_OK;
 }
 
@@ -159,7 +355,7 @@ static const struct IVectorView_GamepadVtbl vector_view_gamepad_vtbl =
     vector_view_gamepad_GetIids,
     vector_view_gamepad_GetRuntimeClassName,
     vector_view_gamepad_GetTrustLevel,
-    /* IVectorView<VoiceInformation> methods */
+    /* IVectorView<Gamepad> methods */
     vector_view_gamepad_GetAt,
     vector_view_gamepad_get_Size,
     vector_view_gamepad_IndexOf,
